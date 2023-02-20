@@ -2,33 +2,24 @@ import stripe
 
 from django.conf import settings
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
 from django.views import View
 from django.views.generic import TemplateView
 
 from .models import Item
 
 
-def product_list(request):
-    products = Item.objects.all()
-    return render(request,
-                  'base.html',
-                  {"product": products,
-                   "STRIPE_PUBLIC_KEY": settings.STRIPE_PUBLIC_KEY})
+class Products(TemplateView):
+    template_name = 'base.html'
+    context_object_name = 'Товары'
 
-
-# class Products(TemplateView):
-#     template_name = 'base.html'
-#     context_object_name = 'Товары'
-#
-#     def get_context_data(self, **kwargs):
-#         product = Item.objects.get(name="Test Product")
-#         context = super(Products, self).get_context_data(**kwargs)
-#         context.update({
-#             "product": product,
-#             "STRIPE_PUBLIC_KEY": settings.STRIPE_PUBLIC_KEY
-#         })
-#         return context
+    def get_context_data(self, **kwargs):
+        product = Item.objects.get(name="Test Product")
+        context = super(Products, self).get_context_data(**kwargs)
+        context.update({
+            "product": product,
+            "STRIPE_PUBLIC_KEY": settings.STRIPE_PUBLIC_KEY
+        })
+        return context
 
 
 class Success(TemplateView):
@@ -40,6 +31,12 @@ class Cancel(TemplateView):
 
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def get_coupon():
+    return stripe.Coupon.create(
+        percent_off=50,
+    )
 
 
 class CreateCheckoutSession(View):
@@ -66,6 +63,10 @@ class CreateCheckoutSession(View):
             ],
 
             mode='payment',
+            discounts=[{
+                'coupon': get_coupon(),
+            }],
+
             success_url=YOUR_DOMAIN + 'success/',
             cancel_url=YOUR_DOMAIN + 'cancel/',
         )
